@@ -1,20 +1,21 @@
 import React, { Component } from 'react';
 import './App.css';
+import axios from 'axios';
 
 const DEFAULT_QUERY = 'redux';
 const DEFAULT_HPP = 100;
 
-const PATH_BASE = 'http://hn.algolia.com/api/v1/';
-const PATH_SEARCH = 'search';
+const PATH_BASE = 'https://hn.algolia.com/api/v1';
+const PATH_SEARCH = '/search';
 const PARAM_SEARCH = 'query=';
 const PARAM_PAGE = 'page=';
 const PARAM_HPP = 'hitsPerPage=';
-const url = `${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${DEFAULT_QUERY}&${PARAM_PAGE}`;
 
 const isSearched = (searchTerm) => (item) =>
   item.title.toLowerCase().includes(searchTerm.toLowerCase());
 
 class App extends Component {
+  _ismounted = false;
   constructor(props) {
     super(props);
 
@@ -22,13 +23,14 @@ class App extends Component {
       results: null,
       searchKey: '', // a pointer to your current result in the cache
       searchTerm: DEFAULT_QUERY,
+      error: null,
     };
 
     this.needToSearchTopStories = this.needToSearchTopStories.bind(this);
     this.setSearchTopStories = this.setSearchTopStories.bind(this);
     this.onSearchChange = this.onSearchChange.bind(this);
     this.onDismiss = this.onDismiss.bind(this);
-    this.onsearchSubmit = this.onsearchSubmit.bind(this);
+    this.onSearchSubmit = this.onSearchSubmit.bind(this);
     this.fetchSearchTopStories = this.fetchSearchTopStories.bind(this);
   }
   needToSearchTopStories(searchTerm) {
@@ -49,29 +51,35 @@ class App extends Component {
   }
 
   fetchSearchTopStories(searchTerm, page = 0) {
-    fetch(
+    axios(
       `${PATH_BASE}${PATH_SEARCH}?${PARAM_SEARCH}${searchTerm}&${PARAM_PAGE}${page}&${PARAM_HPP}${DEFAULT_HPP}`
     )
-      .then((response) => response.json()) // transform the response to a JSON data structure
-      .then((result) => this.setSearchTopStories(result))
-      .catch((error) => error);
+      // .then((response) => response.json()) // transform the response to a JSON data structure
+      .then(
+        (result) => this._isMounted && this.setSearchTopStories(result.data)
+      )
+      .catch((error) => this._isMounted && this.setState({ error }));
   }
 
-  onsearchSubmit(event) {
+  onSearchSubmit(event) {
     const { searchTerm } = this.state;
     this.setState({ searchKey: searchTerm });
-    this.fetchSearchTopStories(searchTerm);
-    event.preventDefault();
     if (this.needToSearchTopStories(searchTerm)) {
       this.fetchSearchTopStories(searchTerm);
     }
+    event.preventDefault();
   }
 
   componentDidMount() {
+    this._isMounted = true;
     //use this life cycle method to fetch the data after the component did mount, fetch redux related stories
     const { searchTerm } = this.state;
     this.setState({ searchKey: searchTerm });
     this.fetchSearchTopStories(searchTerm);
+  }
+
+  componentWillUnmount() {
+    this._ismounted = false;
   }
 
   onSearchChange(event) {
@@ -92,23 +100,30 @@ class App extends Component {
   }
 
   render() {
-    const { searchTerm, results, searchKey } = this.state;
+    const { searchTerm, results, searchKey, error } = this.state;
     const page =
       (results && results[searchKey] && results[searchKey].page) || 0;
     const list =
       (results && results[searchKey] && results[searchKey].hits) || [];
+
     return (
       <div className="page">
         <div className="interactions">
           <Search
             value={searchTerm}
             onChange={this.onSearchChange}
-            onSubmit={this.onsearchSubmit}
+            onSubmit={this.onSearchSubmit}
           >
             Search
           </Search>
         </div>
-        <Table list={list} onDismiss={this.onDismiss} />
+        {error ? (
+          <div className="interactions">
+            <p>Something went wrong.</p>
+          </div>
+        ) : (
+          <Table list={list} onDismiss={this.onDismiss} />
+        )}
         <div className="interactions">
           <Button
             onClick={() => this.fetchSearchTopStories(searchKey, page + 1)}
