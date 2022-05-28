@@ -3,16 +3,13 @@ import './App.css';
 import axios from 'axios';
 
 const DEFAULT_QUERY = 'redux';
-const DEFAULT_HPP = 100;
+const DEFAULT_HPP = '100';
 
 const PATH_BASE = 'https://hn.algolia.com/api/v1';
 const PATH_SEARCH = '/search';
 const PARAM_SEARCH = 'query=';
 const PARAM_PAGE = 'page=';
 const PARAM_HPP = 'hitsPerPage=';
-
-const isSearched = (searchTerm) => (item) =>
-  item.title.toLowerCase().includes(searchTerm.toLowerCase());
 
 class App extends Component {
   _ismounted = false;
@@ -26,14 +23,14 @@ class App extends Component {
       error: null,
     };
 
-    this.needToSearchTopStories = this.needToSearchTopStories.bind(this);
+    this.needsToSearchTopStories = this.needsToSearchTopStories.bind(this);
     this.setSearchTopStories = this.setSearchTopStories.bind(this);
     this.onSearchChange = this.onSearchChange.bind(this);
     this.onDismiss = this.onDismiss.bind(this);
     this.onSearchSubmit = this.onSearchSubmit.bind(this);
     this.fetchSearchTopStories = this.fetchSearchTopStories.bind(this);
   }
-  needToSearchTopStories(searchTerm) {
+  needsToSearchTopStories(searchTerm) {
     return !this.state.results[searchTerm];
   }
   setSearchTopStories(result) {
@@ -62,7 +59,7 @@ class App extends Component {
   onSearchSubmit(event) {
     const { searchTerm } = this.state;
     this.setState({ searchKey: searchTerm });
-    if (this.needToSearchTopStories(searchTerm)) {
+    if (this.needsToSearchTopStories(searchTerm)) {
       this.fetchSearchTopStories(searchTerm);
     }
     event.preventDefault();
@@ -134,7 +131,7 @@ class App extends Component {
   }
 }
 
-const Table = ({ list, pattern, onDismiss }) => (
+const Table = ({ list, onDismiss }) => (
   <div className="table">
     {list.map((item) => (
       <div key={item.objectID} className="table-row">
